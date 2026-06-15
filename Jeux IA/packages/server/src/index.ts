@@ -29,7 +29,7 @@ function localIPv4Addresses(): string[] {
   const addresses: string[] = [];
   for (const nets of Object.values(os.networkInterfaces())) {
     for (const net of nets ?? []) {
-      const isIPv4 = net.family === "IPv4" || net.family === 4;
+      const isIPv4 = net.family === "IPv4" || (net.family as unknown as number) === 4;
       if (isIPv4 && !net.internal) addresses.push(net.address);
     }
   }

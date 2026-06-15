@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ClientMessage, DEV_MIN_PLAYERS, MAX_PLAYERS } from "@aip/shared";
+import {
+  ClientMessage,
+  DEV_MIN_PLAYERS,
+  DUO_MIN_PLAYERS,
+  MAX_PLAYERS,
+  type GameMode,
+} from "@aip/shared";
 import { useGameStore } from "../store";
 import { Chat } from "./Chat";
 
@@ -147,15 +153,20 @@ export function Lobby() {
 
 function HostConfig() {
   const room = useGameStore((s) => s.room);
-  const [rounds, setRounds] = useState(3);
-  const [discussionSeconds, setDiscussion] = useState(120);
+  const snap = useGameStore((s) => s.snap)!;
+  const [gameMode, setGameMode] = useState<GameMode>("solo");
+  const [rounds, setRounds] = useState(2);
+  const [turnsPerPlayer, setTurns] = useState(2);
+  const [turnSeconds, setTurnSeconds] = useState(30);
   const [voteSeconds, setVote] = useState(30);
 
-  function update(patch: Record<string, number>) {
+  const enoughForDuo = snap.players.length >= DUO_MIN_PLAYERS;
+
+  function update(patch: Record<string, number | string>) {
     room?.send(ClientMessage.SetConfig, patch);
   }
 
-  const fields: Array<{
+  const numFields: Array<{
     label: string;
     value: number;
     set: (n: number) => void;
@@ -165,28 +176,51 @@ function HostConfig() {
     step: number;
   }> = [
     { label: "Rounds", value: rounds, set: setRounds, key: "rounds", min: 1, max: 10, step: 1 },
-    {
-      label: "Discussion (s)",
-      value: discussionSeconds,
-      set: setDiscussion,
-      key: "discussionSeconds",
-      min: 15,
-      max: 300,
-      step: 15,
-    },
+    { label: "Prises de parole", value: turnsPerPlayer, set: setTurns, key: "turnsPerPlayer", min: 1, max: 4, step: 1 },
+    { label: "Tour (s)", value: turnSeconds, set: setTurnSeconds, key: "turnSeconds", min: 15, max: 90, step: 5 },
     { label: "Vote (s)", value: voteSeconds, set: setVote, key: "voteSeconds", min: 10, max: 120, step: 5 },
   ];
 
   return (
     <div className="arcade-card p-4">
       <h2 className="mb-3 font-display tracking-wide text-neon-yellow">Réglages (host)</h2>
-      <div className="grid grid-cols-3 gap-3">
-        {fields.map((f) => (
+
+      <p className="mb-1 text-xs text-white/60">Mode de jeu</p>
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {(["solo", "duo"] as GameMode[]).map((m) => {
+          const disabled = m === "duo" && !enoughForDuo;
+          return (
+            <button
+              key={m}
+              disabled={disabled}
+              onClick={() => {
+                setGameMode(m);
+                update({ gameMode: m });
+              }}
+              className={`rounded-xl border-2 px-2 py-2 text-xs font-semibold transition ${
+                gameMode === m
+                  ? "border-neon-pink bg-neon-pink/20 text-white"
+                  : "border-night-600 bg-night-900/40 text-white/60"
+              } ${disabled ? "cursor-not-allowed opacity-40" : "hover:border-neon-cyan"}`}
+            >
+              {m === "solo" ? "Solo · 1 IA" : `Duo · IA + imposteur`}
+              {disabled && <span className="block text-[10px]">min. {DUO_MIN_PLAYERS} joueurs</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mb-3 text-[11px] italic text-white/40">
+        🎲 La personnalité de l'IA est tirée au hasard à chaque partie (pour rester indevinable).
+      </p>
+
+      <div className="grid grid-cols-4 gap-2">
+        {numFields.map((f) => (
           <label key={f.key} className="text-center text-xs text-white/60">
             {f.label}
             <input
               type="number"
-              className="arcade-input mt-1 w-full px-2 py-1 text-center text-base"
+              className="arcade-input mt-1 w-full px-1 py-1 text-center text-base"
               value={f.value}
               min={f.min}
               max={f.max}

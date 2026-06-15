@@ -21,7 +21,7 @@ export default function App() {
             <span className="text-neon-cyan">PARTY</span>
           </h1>
           <p className="mt-1 text-sm text-white/60">
-            Démasque l'imposteur… et surtout, trouve l'IA cachée 🤖
+            Tout le monde est anonyme… une IA se cache parmi vous. Démasquez-la ! 🤖
           </p>
         </header>
 

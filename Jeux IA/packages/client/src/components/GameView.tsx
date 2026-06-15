@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ClientMessage,
+  COLOR_BY_KEY,
+  GAME_MODE_LABELS,
   ROLE_LABELS,
   WINNER_LABELS,
+  type PlayerSnap,
   type Role,
 } from "@aip/shared";
 import { useGameStore } from "../store";
@@ -25,10 +28,22 @@ function roleColor(role?: Role) {
   return "text-neon-green";
 }
 
+function ColorDot({ p }: { p: PlayerSnap }) {
+  const color = COLOR_BY_KEY[p.colorKey] || "#888";
+  return (
+    <span
+      className="inline-block h-6 w-6 shrink-0 rounded-full border-2 border-white/20"
+      style={{ backgroundColor: color }}
+      title={p.displayName}
+    />
+  );
+}
+
 export function GameView() {
   const snap = useGameStore((s) => s.snap)!;
   const myId = useGameStore((s) => s.myId);
   const myRole = useGameStore((s) => s.myRole);
+  const roleInfo = useGameStore((s) => s.myRoleInfo);
   const room = useGameStore((s) => s.room);
   const remaining = useCountdown(snap.phaseEndsAt);
 
@@ -51,12 +66,20 @@ export function GameView() {
   if (snap.phase === "end") return <EndScreen />;
 
   const phaseLabel =
-    snap.phase === "discussion" ? "Discussion" : snap.phase === "vote" ? "Vote" : "Révélation";
+    snap.phase === "discussion"
+      ? "Discussion"
+      : snap.phase === "vote"
+        ? "Vote"
+        : "Révélation";
+
+  const speaker = snap.players.find((p) => p.id === snap.currentSpeakerId);
+  const iSpeak = snap.phase === "discussion" && snap.currentSpeakerId === myId;
 
   return (
     <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-[1fr_1.4fr]">
       <div className="flex flex-col gap-4">
         <div className="arcade-card p-5 text-center">
+          <p className="text-xs text-white/40">{GAME_MODE_LABELS[snap.gameMode]}</p>
           <p className="text-sm text-white/60">
             Round {snap.round} · {phaseLabel}
           </p>
@@ -65,20 +88,53 @@ export function GameView() {
               {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
             </p>
           )}
+
+          {snap.theme && snap.phase !== "reveal" && (
+            <div className="mt-3 rounded-xl border-2 border-neon-purple/40 bg-neon-purple/10 px-3 py-2 text-sm text-white/90">
+              <span className="block font-display text-xs tracking-wide text-neon-yellow">
+                Thème
+              </span>
+              {snap.theme}
+            </div>
+          )}
+
+          {snap.phase === "discussion" && speaker && (
+            <p className="mt-3 text-sm">
+              {iSpeak ? (
+                <span className="font-display text-neon-green">🎙️ À toi de parler !</span>
+              ) : (
+                <>
+                  Au tour de{" "}
+                  <span
+                    className="font-display"
+                    style={{ color: COLOR_BY_KEY[speaker.colorKey] }}
+                  >
+                    {speaker.displayName}
+                  </span>
+                </>
+              )}
+            </p>
+          )}
+
           {myRole && (
-            <p className="mt-2 text-sm">
-              Ton rôle :{" "}
+            <p className="mt-3 text-sm">
+              Toi (<span style={{ color: COLOR_BY_KEY[me?.colorKey ?? ""] }}>{me?.displayName}</span>) :{" "}
               <span className={`font-display tracking-wide ${roleColor(myRole)}`}>
                 {ROLE_LABELS[myRole]}
               </span>
               {!me?.alive && <span className="text-white/40"> · éliminé 👻</span>}
             </p>
           )}
+          {roleInfo?.allyIdentity && (
+            <p className="mt-1 text-xs text-neon-cyan">
+              🤝 Ton allié (l'IA) se cache sous « {roleInfo.allyIdentity} ». Protège-le !
+            </p>
+          )}
         </div>
 
         <div className="arcade-card flex-1 p-4">
           <h2 className="mb-3 font-display tracking-wide text-neon-yellow">
-            {snap.phase === "vote" ? "Vote : qui éliminer ?" : "Joueurs"}
+            {snap.phase === "vote" ? "Vote : qui est l'IA ?" : "Joueurs"}
           </h2>
           <ul className="space-y-2">
             {snap.players.map((p) => {
@@ -86,6 +142,7 @@ export function GameView() {
               const count = voteCounts[p.id] ?? 0;
               const isMyVote = myVote === p.id;
               const clickable = snap.phase === "vote" && me?.alive && p.alive;
+              const isSpeaking = snap.phase === "discussion" && snap.currentSpeakerId === p.id;
               return (
                 <li
                   key={p.id}
@@ -94,14 +151,18 @@ export function GameView() {
                       ? "border-night-600 bg-night-900/50"
                       : "border-transparent bg-night-900/20 opacity-50"
                   } ${isMyVote ? "!border-neon-pink shadow-neon" : ""} ${
-                    clickable ? "cursor-pointer hover:border-neon-cyan" : ""
-                  }`}
+                    isSpeaking ? "!border-neon-green" : ""
+                  } ${clickable ? "cursor-pointer hover:border-neon-cyan" : ""}`}
                   onClick={() => clickable && vote(p.id)}
                 >
-                  <span className="text-2xl">{p.avatar}</span>
-                  <span className={`flex-1 font-semibold ${!p.alive ? "line-through" : ""}`}>
-                    {p.name}
+                  <ColorDot p={p} />
+                  <span
+                    className={`flex-1 font-semibold ${!p.alive ? "line-through" : ""}`}
+                    style={{ color: p.alive ? COLOR_BY_KEY[p.colorKey] : undefined }}
+                  >
+                    {p.displayName || p.name}
                     {p.id === myId && <span className="text-white/40"> (toi)</span>}
+                    {isSpeaking && <span className="ml-1">🎙️</span>}
                     {revealed && (
                       <span className={`ml-2 text-xs ${roleColor(revealed)}`}>
                         {ROLE_LABELS[revealed]}
@@ -156,14 +217,16 @@ function EndScreen() {
         <ul className="mt-5 space-y-2 text-left">
           {snap.players.map((p) => {
             const role = snap.roleReveal[p.id];
+            const realName = snap.nameReveal[p.id];
             return (
               <li
                 key={p.id}
                 className="flex items-center gap-3 rounded-xl border-2 border-night-600 bg-night-900/50 px-3 py-2"
               >
-                <span className="text-2xl">{p.avatar}</span>
+                <ColorDot p={p} />
                 <span className="flex-1 font-semibold">
-                  {p.name}
+                  <span style={{ color: COLOR_BY_KEY[p.colorKey] }}>{p.displayName}</span>
+                  {realName && <span className="text-white/70"> · {realName}</span>}
                   {p.id === myId && <span className="text-white/40"> (toi)</span>}
                 </span>
                 <span className={`font-display text-sm ${roleColor(role)}`}>

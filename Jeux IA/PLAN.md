@@ -47,11 +47,15 @@ LOBBY → ASSIGN → [ DISCUSSION → VOTE → REVEAL ] (xN rounds) → END
 - [x] Élimination + révélation, détection de fin
 - [x] Reconnexion (fenêtre 30 s)
 
-### L'IA joueur (Phase 3)
-- [ ] Lit le chat et répond comme un humain (latence + fautes simulées)
-- [ ] 4 personnalités : Manipulateur, Timide, Agressif, Drôle
-- [ ] Vote, accuse, se défend, s'adapte aux votes
-- [ ] Anti-détection : messages courts, délai de frappe, langage relâché
+### L'IA joueur (Phase 3) ✅
+- [x] IA virtuelle ajoutée au lancement, cachée parmi des joueurs **anonymisés** (couleurs)
+- [x] 2 modes : **Solo** (1 IA) · **Duo** (1 IA + 1 imposteur humain allié, qui connaît l'IA)
+- [x] **Tour de parole** : thème par manche, chacun répond à son tour, l'IA rebondit
+- [x] Lit le chat et répond comme un humain (latence ∝ longueur + fautes simulées + minuscules)
+- [x] 4 personnalités + Aléatoire : Manipulateur, Timide, Agressif, Drôle
+- [x] Vote (JSON `{identity, reason}`), accuse, se défend pendant le vote
+- [x] Anti-détection : messages courts, délai de frappe, langage relâché, fautes
+- [x] L'IA a accès aux vrais pseudos côté serveur (intel) — jamais exposés aux joueurs
 
 ### Après-partie (Phase 4+)
 - [ ] Écran de résultats (fait) + persistance
@@ -122,7 +126,7 @@ RoundResult(id, gameId, round, eliminatedId)
 1. [x] **Phase 0** — Setup monorepo, Colyseus + Vite.
 2. [x] **Phase 1** — Lobby (code, joueurs, ready, config host).
 3. [x] **Phase 2** — Boucle rounds (timers, vote, élimination, victoire, écran de fin).
-4. [ ] **Phase 3** — Joueur IA (DeepSeek, 4 personas, anti-détection).
+4. [x] **Phase 3** — Joueur IA (DeepSeek, 4 personas, anti-détection, modes Solo/Duo, tour de parole anonymisé).
 5. [ ] **Phase 4** — Persistance & écran résultats avancé.
 6. [ ] **Phase 5** — Historique & Replay.
 7. [ ] **Phase 6** — Polish DA, sons, responsive mobile.

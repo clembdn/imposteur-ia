@@ -1,5 +1,11 @@
 import { Client, Room } from "colyseus.js";
-import { ROOM_NAME, ServerMessage, type Role, type StateSnap } from "@aip/shared";
+import {
+  ROOM_NAME,
+  ServerMessage,
+  type Role,
+  type RolePayload,
+  type StateSnap,
+} from "@aip/shared";
 import { useGameStore } from "../store";
 
 /** URL WebSocket du serveur — auto-détectée sur le LAN si VITE_SERVER_URL est vide. */
@@ -27,6 +33,8 @@ function snapshot(state: any): StateSnap {
       id: p.id,
       name: p.name,
       avatar: p.avatar,
+      displayName: p.displayName,
+      colorKey: p.colorKey,
       ready: p.ready,
       alive: p.alive,
       connected: p.connected,
@@ -40,6 +48,7 @@ function snapshot(state: any): StateSnap {
       id: m.id,
       senderId: m.senderId,
       senderName: m.senderName,
+      colorKey: m.colorKey,
       text: m.text,
       system: m.system,
       ts: m.ts,
@@ -56,18 +65,28 @@ function snapshot(state: any): StateSnap {
     roleReveal[id] = role;
   });
 
+  const nameReveal: Record<string, string> = {};
+  state.nameReveal.forEach((name: string, id: string) => {
+    nameReveal[id] = name;
+  });
+
   return {
     code: state.code,
     phase: state.phase,
+    gameMode: state.gameMode,
     round: state.round,
     hostId: state.hostId,
     phaseEndsAt: state.phaseEndsAt,
+    currentSpeakerId: state.currentSpeakerId,
+    typingId: state.typingId,
+    theme: state.theme,
     winner: state.winner,
     lastEliminatedId: state.lastEliminatedId,
     players,
     messages,
     votes,
     roleReveal,
+    nameReveal,
   };
 }
 
@@ -78,8 +97,8 @@ function bind(room: Room) {
     useGameStore.getState().setSnap(snapshot(state));
   });
 
-  room.onMessage(ServerMessage.Role, (payload: { role: Role }) => {
-    useGameStore.getState().setRole(payload.role);
+  room.onMessage(ServerMessage.Role, (payload: RolePayload) => {
+    useGameStore.getState().setRoleInfo(payload);
   });
 
   room.onMessage(ServerMessage.Error, (payload: { message: string }) => {
