@@ -1,0 +1,20 @@
+{
+  "name": "ai-impostor-party",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev --workspace=packages/server",
+    "dev:client": "npm run dev --workspace=packages/client",
+    "build:client": "npm run build --workspace=packages/client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

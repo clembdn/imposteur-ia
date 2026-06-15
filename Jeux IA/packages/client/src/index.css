@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-night text-white font-body antialiased;
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(168, 85, 247, 0.18), transparent 45%),
+    radial-gradient(circle at 80% 100%, rgba(34, 224, 255, 0.15), transparent 45%);
+  background-attachment: fixed;
+}
+
+/* Effet scanline rétro / CRT léger */
+.scanlines::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 50;
+}
+
+@layer components {
+  .arcade-card {
+    @apply rounded-2xl border-2 border-night-600 bg-night-800/80 shadow-hard backdrop-blur;
+  }
+  .arcade-btn {
+    @apply rounded-xl border-2 border-black/40 px-5 py-3 font-display tracking-wide shadow-hard transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:active:translate-x-0 disabled:active:translate-y-0;
+  }
+  .arcade-input {
+    @apply rounded-xl border-2 border-night-600 bg-night-900/70 px-4 py-3 text-white outline-none focus:border-neon-cyan;
+  }
+}
